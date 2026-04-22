@@ -1,0 +1,68 @@
+{
+  "aws": {
+    "region": "us-east-1",
+    "bucket_name": "cs5296-cdn-ziang-personal-20260422",
+    "s3_base_url": "https://cs5296-cdn-ziang-personal-20260422.s3.us-east-1.amazonaws.com",
+    "cloudfront_domain": "d1kkjdyyhst5i6.cloudfront.net"
+  },
+  "dataset": {
+    "local_root": "data/test_files",
+    "local_manifest": "data/processed/local_files.csv",
+    "uploaded_manifest": "data/processed/uploaded_objects.csv",
+    "file_sets": [
+      {
+        "label": "10kb",
+        "size_bytes": 10240,
+        "count": 5
+      },
+      {
+        "label": "100kb",
+        "size_bytes": 102400,
+        "count": 5
+      },
+      {
+        "label": "1mb",
+        "size_bytes": 1048576,
+        "count": 5
+      },
+      {
+        "label": "5mb",
+        "size_bytes": 5242880,
+        "count": 5
+      }
+    ],
+    "upload_profiles": [
+      {
+        "name": "baseline",
+        "prefix": "baseline",
+        "cache_control": "public, max-age=300"
+      },
+      {
+        "name": "short_ttl",
+        "prefix": "ttl-short",
+        "cache_control": "public, max-age=60"
+      },
+      {
+        "name": "long_ttl",
+        "prefix": "ttl-long",
+        "cache_control": "public, max-age=3600"
+      }
+    ],
+    "mutable_object": {
+      "local_path": "data/test_files/mutable/update_test.txt",
+      "key": "mutable/update_test.txt",
+      "cache_control": "public, max-age=60"
+    }
+  },
+  "benchmark": {
+    "result_root": "result",
+    "default_requests_per_size": 20,
+    "default_rounds": 3,
+    "connect_timeout_seconds": 10,
+    "read_timeout_seconds": 60,
+    "sleep_between_requests_seconds": 0.0,
+    "hotspot_ratio": 0.8,
+    "hotspot_pool_size": 2,
+    "user_agent": "CS5296-CDN-Benchmark/1.0"
+  }
+}

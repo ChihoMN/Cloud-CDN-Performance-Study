@@ -1,16 +1,39 @@
-# 这是一个示例 Python 脚本。
+from __future__ import annotations
 
-# 按 ⌃R 执行或将其替换为您的代码。
-# 按 双击 ⇧ 在所有地方搜索类、文件、工具窗口、操作和设置。
-
-
-def print_hi(name):
-    # 在下面的代码行中使用断点来调试脚本。
-    print(f'Hi, {name}')  # 按 ⌘F8 切换断点。
+import importlib
+import sys
 
 
-# 按装订区域中的绿色按钮以运行脚本。
-if __name__ == '__main__':
-    print_hi('PyCharm')
+COMMAND_MODULES = {
+    "generate-files": "scripts.generate_files",
+    "upload-files": "scripts.upload_files",
+    "benchmark": "scripts.benchmark",
+    "analyze": "scripts.analyze",
+}
 
-# 访问 https://www.jetbrains.com/help/pycharm/ 获取 PyCharm 帮助
+
+def print_usage() -> None:
+    commands = "\n".join(f"  {name}" for name in COMMAND_MODULES)
+    print("Usage: python main.py <command> [options]\n")
+    print("Commands:")
+    print(commands)
+
+
+def main() -> int:
+    if len(sys.argv) < 2 or sys.argv[1] in {"-h", "--help"}:
+        print_usage()
+        return 0
+
+    command = sys.argv[1]
+    module_name = COMMAND_MODULES.get(command)
+    if module_name is None:
+        print(f"Unknown command: {command}\n")
+        print_usage()
+        return 2
+
+    module = importlib.import_module(module_name)
+    return module.main(sys.argv[2:])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

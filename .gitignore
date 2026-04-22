@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+access_key
+result/
+data/raw/*.csv
+data/processed/*.csv
+data/test_files/**/*.bin
+data/test_files/mutable/update_test.txt
+figures/*.png
