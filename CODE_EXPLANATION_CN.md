@@ -1,21 +1,27 @@
-# 当前代码说明
+# 代码说明
 
-## 1. 项目目标
+## 1. 文档目的
 
-当前代码实现了一个最小可运行的 CDN 性能实验框架，用来比较同一批静态对象通过以下两条路径访问时的差异：
+本文档用于说明当前仓库中的代码结构、配置方式、运行流程以及各个脚本的职责，帮助阅读者快速理解整个实验框架的组成。
+
+## 2. 项目概览
+
+当前项目实现了一个基于 Amazon S3 和 Amazon CloudFront 的实验框架，用于比较同一批静态对象通过以下两条访问路径时的性能表现：
 
 - `S3 Direct URL`
 - `CloudFront URL`
 
-项目的核心目标是：
+整套代码围绕以下流程组织：
 
-- 生成不同大小的测试文件
-- 上传到同一个 S3 bucket
-- 同时对 S3 和 CloudFront 发起请求
-- 记录性能数据
-- 生成汇总结果和图表
+1. 生成测试文件
+2. 上传对象到 S3
+3. 运行基准测试
+4. 汇总实验结果
+5. 输出图表和统计信息
 
-## 2. 当前目录结构
+## 3. 根目录结构
+
+当前根目录中与代码相关的主要文件如下：
 
 ```text
 main.py
@@ -24,117 +30,175 @@ requirements.txt
 README.md
 CODE_EXPLANATION_CN.md
 scripts/
-  common.py
-  generate_files.py
-  upload_files.py
-  benchmark.py
-  analyze.py
 data/
-  raw/
-  processed/
-  test_files/
 ```
 
-说明：
+各部分含义如下：
 
 - `main.py`：统一命令入口
-- `config.json`：集中管理实验配置
-- `scripts/`：核心功能脚本
-- `data/test_files/`：本地测试文件
-- `data/processed/`：中间 manifest 文件
-- `result/`：每轮实验结果目录，运行时自动生成
+- `config.json`：实验配置文件
+- `requirements.txt`：Python 依赖列表
+- `README.md`：英文运行说明
+- `CODE_EXPLANATION_CN.md`：中文代码说明文档
+- `scripts/`：核心脚本目录
+- `data/`：本地测试文件和中间数据目录
 
-## 3. 配置文件说明
+## 4. 入口文件说明
 
-`config.json` 里已经写入了当前实验环境：
+入口文件是 [main.py](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/main.py:1)。
 
-- `region`: `us-east-1`
-- `bucket_name`: `cs5296-cdn-ziang-personal-20260422`
-- `s3_base_url`: 当前 S3 直连地址前缀
-- `cloudfront_domain`: 当前 CloudFront 域名
+该文件不直接执行实验逻辑，而是根据命令行参数把任务分发给不同脚本。当前支持的子命令包括：
 
-除此之外，它还定义了：
+- `generate-files`
+- `upload-files`
+- `benchmark`
+- `analyze`
 
-- 本地测试文件保存位置
+因此，整个项目的调用方式是：
+
+```bash
+python main.py <command> [options]
+```
+
+## 5. 配置文件说明
+
+配置文件是 [config.json](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/config.json:1)。
+
+### 5.1 AWS 相关配置
+
+配置文件中记录了当前实验环境：
+
+- `region`
+- `bucket_name`
+- `s3_base_url`
+- `cloudfront_domain`
+
+这些字段决定了脚本如何定位当前实验所使用的 S3 bucket 和 CloudFront 分发地址。
+
+### 5.2 数据集配置
+
+`dataset` 部分定义了：
+
+- 本地测试文件根目录
 - 本地文件 manifest 路径
 - 已上传对象 manifest 路径
-- 文件大小梯度和每档文件数量
-- 上传 profile 和对应的 `Cache-Control`
-- benchmark 默认请求次数、轮数、超时和热点比例
+- 文件大小梯度
+- 每种大小生成的文件数量
+- 上传 profile
+- `mutable_object`
 
-## 4. 当前已实现的功能
+当前默认文件大小包括：
 
-### 4.1 生成测试文件
+- `10KB`
+- `100KB`
+- `1MB`
+- `5MB`
 
-脚本：`scripts/generate_files.py`
+### 5.3 Benchmark 配置
 
-功能：
+`benchmark` 部分定义了：
 
-- 按配置生成多组随机二进制文件
-- 当前默认文件大小为：
-  - `10KB`
-  - `100KB`
-  - `1MB`
-  - `5MB`
-- 每个大小默认生成 `5` 个文件
-- 额外生成一个 `mutable/update_test.txt`，为后续更新可见性实验预留
-- 生成本地 manifest：`data/processed/local_files.csv`
+- `result_root`
+- 默认每组请求数
+- 默认轮数
+- 连接超时
+- 读取超时
+- 请求间隔
+- 热点访问比例
+- 热点对象池大小
+- 自定义 User-Agent
 
-### 4.2 上传到 S3
+这些参数决定了 benchmark 的默认行为。
 
-脚本：`scripts/upload_files.py`
+## 6. scripts 目录说明
 
-功能：
+当前 `scripts/` 目录包含以下文件：
+
+- `common.py`
+- `generate_files.py`
+- `upload_files.py`
+- `benchmark.py`
+- `analyze.py`
+
+### 6.1 common.py
+
+[scripts/common.py](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/scripts/common.py:1) 提供多个脚本共享的基础函数，包括：
+
+- 读取配置
+- 解析项目相对路径
+- 创建目录
+- 生成 UTC 时间戳
+- 生成适合目录名的参数字符串
+- 读写 CSV
+- 写 JSON
+- 生成 URL
+
+这个文件主要用于减少重复代码，使其余脚本保持统一的路径和输出风格。
+
+### 6.2 generate_files.py
+
+[scripts/generate_files.py](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/scripts/generate_files.py:1) 用于生成本地测试文件。
+
+其主要功能包括：
+
+- 根据 `config.json` 中定义的文件大小批量生成随机二进制文件
+- 按大小分类保存到 `data/test_files/`
+- 生成本地文件清单 `local_files.csv`
+- 生成一个 `mutable/update_test.txt`
+
+该脚本输出的 `local_files.csv` 是后续上传步骤的输入。
+
+### 6.3 upload_files.py
+
+[scripts/upload_files.py](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/scripts/upload_files.py:1) 用于将本地测试文件上传到 S3。
+
+其主要功能包括：
 
 - 读取 `local_files.csv`
-- 按 profile 上传到 S3
-- 自动写入对象的 `Cache-Control`
-- 自动生成 `uploaded_objects.csv`
+- 根据不同 `upload_profiles` 上传对象
+- 为对象写入对应的 `Cache-Control`
+- 生成 `uploaded_objects.csv`
 
-当前默认 profile：
-
-- `baseline`
-- `short_ttl`
-- `long_ttl`
-
-每个已上传对象都会记录：
+`uploaded_objects.csv` 中记录了每个对象的：
 
 - 文件大小
+- 文件名
 - 本地路径
 - S3 key
 - S3 URL
 - CloudFront URL
 - 缓存 profile
 
-### 4.3 运行基准测试
+这个文件是 benchmark 的直接输入。
 
-脚本：`scripts/benchmark.py`
+### 6.4 benchmark.py
 
-功能：
+[scripts/benchmark.py](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/scripts/benchmark.py:1) 是项目中的核心测试脚本。
+
+它的主要职责是：
 
 - 读取 `uploaded_objects.csv`
-- 对 S3 / CloudFront / 两者同时发起请求
-- 按不同访问模式生成请求序列
-- 对每次请求记录详细结果
+- 按实验参数挑选对象
+- 生成访问序列
+- 对 S3 和 CloudFront 发起请求
+- 记录每次请求的详细结果
+- 将结果保存到独立实验目录
 
-当前支持的测试端点：
+#### 支持的端点
 
 - `s3`
 - `cloudfront`
 - `both`
 
-当前支持的访问模式：
+#### 支持的访问模式
 
 - `single-hot`
-  - 连续请求同一个对象，适合观察 CloudFront 的 Miss 和 Hit
 - `hotspot`
-  - 大部分请求集中在少数热门对象
 - `distributed`
-  - 在对象集合中随机访问
 
-### 4.4 结果记录字段
+#### 记录的主要字段
 
-`benchmark.csv` 当前会记录以下主要字段：
+每次请求会写入 `benchmark.csv`，主要字段包括：
 
 - `run_id`
 - `recorded_at_utc`
@@ -157,124 +221,164 @@ data/
 - `age_header`
 - `error_message`
 
-### 4.5 异常处理
+#### 实验结果目录
 
-当前 benchmark 对异常请求做了保护：
+每次运行 benchmark 时，程序会在根目录 `result/` 下创建独立实验目录。
 
-- 超时不会让程序崩掉
-- 请求异常会被捕获
-- 错误信息会写入 `error_message`
-- 同时保留本次请求对应的时间和基本上下文
-
-### 4.6 结果目录
-
-每次运行 benchmark 时，程序会自动在根目录 `result/` 下创建一个独立文件夹。
-
-目录名会包含：
+目录名由以下信息组成：
 
 - 时间戳
 - profile
 - mode
 - endpoint
-- size 范围
+- 文件大小范围
 - 每组请求数
 - 轮数
 
-例如：
-
-```text
-result/20260422T090000Z__profile-baseline__mode-distributed__endpoint-both__all-sizes__req-20__rounds-3/
-```
-
-该目录中默认包含：
+目录中默认会生成：
 
 - `benchmark.csv`
 - `metadata.json`
 
-## 5. 结果分析功能
+### 6.5 analyze.py
 
-脚本：`scripts/analyze.py`
+[scripts/analyze.py](/Users/cza/Documents/CS5296_CC/project/CS5296_Project/scripts/analyze.py:1) 用于对 benchmark 结果进行汇总分析。
 
-功能：
+它的主要功能包括：
 
-- 读取某一轮或多轮 benchmark 结果
-- 按 `mode / cache_profile / endpoint / size` 分组统计
-- 生成 `summary.csv`
-- 如果环境中安装了 `matplotlib`，则自动画图
+- 读取一轮或多轮实验结果
+- 按固定维度进行分组统计
+- 输出 `summary.csv`
+- 输出图表
 
-当前统计指标包括：
+分组维度为：
+
+- `mode`
+- `cache_profile`
+- `endpoint`
+- `size_label`
+- `size_bytes`
+
+当前汇总统计包括：
 
 - `sample_count`
 - `success_rate`
 - `cache_hit_rate`
-- `mean / median / p95` 的 `ttfb`
-- `mean / median / p95` 的 `total_time`
+- `mean_ttfb_ms`
+- `median_ttfb_ms`
+- `p95_ttfb_ms`
+- `mean_total_time_ms`
+- `median_total_time_ms`
+- `p95_total_time_ms`
 - `mean_throughput_mib_s`
 
-当前图表包括：
+如果环境中安装了 `matplotlib`，脚本会自动生成柱状图，图表输出到实验目录下的 `figures/`。
 
-- `Mean TTFB`
-- `Mean total time`
+## 7. data 目录说明
 
-## 6. 当前运行流程
+`data/` 目录用于保存本地测试文件和中间数据。
 
-### 第一步：生成测试文件
+### 7.1 data/test_files
+
+该目录保存本地生成的测试文件，按尺寸分类组织，例如：
+
+- `10kb/`
+- `100kb/`
+- `1mb/`
+- `5mb/`
+- `mutable/`
+
+### 7.2 data/processed
+
+该目录保存中间 manifest 文件，包括：
+
+- `local_files.csv`
+- `uploaded_objects.csv`
+
+### 7.3 data/raw
+
+该目录预留给原始结果类文件使用。
+
+## 8. 运行流程说明
+
+### 8.1 生成测试文件
 
 ```bash
 .venv/bin/python main.py generate-files --overwrite
 ```
 
-### 第二步：上传到 S3
+执行后将生成：
+
+- 本地测试文件
+- `data/processed/local_files.csv`
+
+### 8.2 上传对象到 S3
 
 ```bash
 .venv/bin/python main.py upload-files
 ```
 
-### 第三步：执行 benchmark
+执行后将生成：
+
+- `data/processed/uploaded_objects.csv`
+
+### 8.3 执行 benchmark
+
+示例：
 
 ```bash
 .venv/bin/python main.py benchmark --endpoint both --mode distributed --profile baseline
 ```
 
-### 第四步：生成汇总结果
+执行后将在 `result/` 下生成一轮独立实验目录，并写入：
+
+- `benchmark.csv`
+- `metadata.json`
+
+### 8.4 执行分析
 
 ```bash
 .venv/bin/python main.py analyze
 ```
 
-## 7. 当前代码已经覆盖的实验能力
+执行后会在结果目录中生成：
 
-当前代码已经支持：
+- `summary.csv`
+- `figures/`
 
-- S3 和 CloudFront 双路径对比
-- 多文件大小测试
-- 多访问模式测试
-- 多次重复请求
-- Cache Hit / Miss 的间接观测
-- 原始结果持久化
-- 结果汇总和图表生成
+## 9. 当前代码中的实验组织方式
 
-## 8. 当前代码仍未完全实现的部分
+当前代码按照以下实验维度组织测试：
 
-以下内容在当前代码中还没有完全展开成独立模块：
+- 访问路径：`S3`、`CloudFront`
+- 文件大小：多档尺寸
+- 缓存 profile：`baseline`、`short_ttl`、`long_ttl`
+- 访问模式：`single-hot`、`hotspot`、`distributed`
+- 请求轮数与每组样本量：由配置和命令行参数共同决定
 
-- 专门的“内容更新可见性”实验脚本
-- 单独的成本估算模块
-- 更严格定义的 throughput 计算公式
-- 更贴合 proposal 的文件大小梯度（例如 50KB / 500KB / 5MB）
+所有实验结果均以目录的形式进行区分和保存，每轮实验目录中包含原始数据、元数据、汇总结果与图表。
 
-也就是说，当前代码已经完成了实验框架和主流程，但还没有把所有扩展实验都补满。
+## 10. 输出结果说明
 
-## 9. 总结
+当前代码的输出结果主要分为三类：
 
-从当前实现来看，这个仓库已经具备一个课程项目所需的核心 artifact 结构：
+### 10.1 中间数据
 
-- 有配置文件
-- 有文件生成
-- 有对象上传
-- 有 benchmark
-- 有结果保存
-- 有分析脚本
-- 有运行文档
+- `local_files.csv`
+- `uploaded_objects.csv`
 
-它已经可以支持你继续跑正式实验，只是后续还可以根据 proposal 再补一些更细的实验模块。
+### 10.2 原始实验结果
+
+- `benchmark.csv`
+
+### 10.3 汇总结果
+
+- `summary.csv`
+- 图表文件
+
+这些文件共同组成当前实验代码的完整输出。
+
+## 11. 总结
+
+当前代码由统一入口、集中配置、文件生成、对象上传、基准测试和结果分析几个部分组成。  
+整个项目通过 `main.py` 协调不同脚本，利用 `config.json` 管理实验参数，并通过 `result/` 目录组织每轮实验的输出结果。
