@@ -13,6 +13,7 @@ COMMAND_MODULES = {
 
 
 def print_usage() -> None:
+    # 统一从这里展示可用子命令，避免各脚本入口分散。
     commands = "\n".join(f"  {name}" for name in COMMAND_MODULES)
     print("Usage: python main.py <command> [options]\n")
     print("Commands:")
@@ -31,6 +32,7 @@ def main() -> int:
         print_usage()
         return 2
 
+    # 延迟导入实际模块，减少无关依赖对其他命令的影响。
     module = importlib.import_module(module_name)
     return module.main(sys.argv[2:])
 

@@ -31,6 +31,7 @@ def write_random_file(path: Path, size_bytes: int, overwrite: bool) -> None:
     if path.exists() and not overwrite:
         return
     ensure_directory(path.parent)
+    # 按块写入随机字节，避免一次性把大文件全部放进内存。
     chunk_size = 1024 * 1024
     remaining = size_bytes
     with path.open("wb") as handle:
@@ -44,6 +45,7 @@ def write_mutable_probe(path: Path, overwrite: bool) -> None:
     if path.exists() and not overwrite:
         return
     ensure_directory(path.parent)
+    # 这个文本对象预留给后续的“内容更新可见性”实验。
     path.write_text(
         "This object is used for update-visibility tests.\n"
         f"Generated at: {utc_timestamp()}\n",
@@ -65,6 +67,7 @@ def run(args: argparse.Namespace) -> int:
         size_label = file_set["label"]
         size_bytes = int(file_set["size_bytes"])
         count = int(file_set["count"])
+        # 每个大小档生成多个对象，方便做热点访问和随机访问测试。
         for index in range(1, count + 1):
             file_name = f"file_{index:02d}.bin"
             local_path = local_root / size_label / file_name

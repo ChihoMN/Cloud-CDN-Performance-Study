@@ -69,6 +69,7 @@ def choose_input_files(raw_dir: Path, requested: list[str] | None) -> list[Path]
         resolved = []
         for item in requested:
             path = resolve_project_path(item)
+            # 既支持直接传 benchmark.csv，也支持直接传某一轮实验目录。
             if path.is_dir():
                 resolved.append(path / "benchmark.csv")
             else:
@@ -83,6 +84,7 @@ def choose_input_files(raw_dir: Path, requested: list[str] | None) -> list[Path]
 def compute_summary(rows: list[dict]) -> list[dict]:
     grouped: dict[tuple[str, str, str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
+        # 汇总维度固定为 mode/profile/endpoint/size，和实验矩阵保持一致。
         key = (
             row["mode"],
             row["cache_profile"],
@@ -159,6 +161,7 @@ def maybe_generate_plots(summary_rows: list[dict], figures_dir: Path, output_ste
             ("mean_ttfb_ms", "Mean TTFB (ms)"),
             ("mean_total_time_ms", "Mean total time (ms)"),
         ]:
+            # 目前只画最核心的两张对比图，保证输出足够直接易读。
             plt.figure(figsize=(8, 5))
             plt.bar(
                 [x - width / 2 for x in x_positions],
@@ -198,9 +201,11 @@ def run(args: argparse.Namespace) -> int:
         output_path = resolve_project_path(args.output)
         figures_dir = output_path.parent / "figures"
     elif len(input_files) == 1:
+        # 单轮分析默认把 summary 和图写回原实验目录。
         output_path = input_files[0].parent / "summary.csv"
         figures_dir = input_files[0].parent / "figures"
     else:
+        # 多轮合并分析则单独创建一个 merged 目录保存结果。
         merged_dir = result_root / (
             f"{timestamp_slug()}__merged-analysis__inputs-{slugify(str(len(input_files)))}"
         )

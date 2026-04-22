@@ -106,6 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def load_manifest_rows(manifest_path: Path, profile: str, allowed_sizes: set[str] | None) -> list[dict]:
     rows = read_csv(manifest_path)
+    # benchmark 只关心当前 profile 和指定尺寸范围内的对象。
     filtered = [
         row for row in rows
         if row["cache_profile"] == profile and (allowed_sizes is None or row["size_label"] in allowed_sizes)
@@ -121,6 +122,7 @@ def group_by_size(rows: list[dict]) -> dict[str, list[dict]]:
     grouped: dict[str, list[dict]] = {}
     for row in rows:
         grouped.setdefault(row["size_label"], []).append(row)
+    # 固定对象顺序，保证 single-hot 模式在不同轮次下可复现。
     for size_rows in grouped.values():
         size_rows.sort(key=lambda row: int(row["file_index"]))
     return grouped
@@ -135,9 +137,11 @@ def build_sequence(
     hotspot_pool_size: int,
 ) -> list[dict]:
     if mode == "single-hot":
+        # 始终访问同一个对象，用来触发明显的 Miss/Hit 对比。
         return [objects_for_size[0] for _ in range(requests_per_size)]
 
     if mode == "hotspot":
+        # 热点模式下，大部分请求命中少数热门对象，少量请求访问完整对象池。
         hot_pool = objects_for_size[: max(1, min(hotspot_pool_size, len(objects_for_size)))]
         sequence = []
         for _ in range(requests_per_size):
@@ -152,6 +156,7 @@ def build_sequence(
 
 def endpoint_order(endpoint: str, rng: random.Random) -> list[str]:
     if endpoint == "both":
+        # 同一批对象既测 S3 又测 CloudFront，并随机化顺序降低固定先后偏差。
         names = ["s3", "cloudfront"]
         rng.shuffle(names)
         return names
@@ -166,6 +171,7 @@ def size_scope_slug(size_labels: set[str] | None) -> str:
 
 
 def default_run_dir(result_root: Path, args: argparse.Namespace, requests_per_size: int, rounds: int) -> Path:
+    # 结果目录名直接编码实验参数，后续查看结果时不需要再回头查命令行。
     run_name = "__".join(
         [
             timestamp_slug(),
@@ -189,6 +195,7 @@ def measure_request(
     start = time.perf_counter()
     bytes_read = 0
     try:
+        # stream=True 允许我们分别测量首字节时间和完整下载时间。
         response = session.get(url, stream=True, timeout=(connect_timeout, read_timeout))
         header_time = time.perf_counter()
         first_chunk_time = None
@@ -203,6 +210,7 @@ def measure_request(
 
         ttfb = (first_chunk_time or header_time) - start
         total_time = end - start
+        # 当前吞吐量按完整下载时间计算，便于直接和 total time 对应。
         throughput = (bytes_read / (1024 * 1024)) / total_time if total_time > 0 else 0.0
         status_code = response.status_code
         return {
@@ -218,6 +226,7 @@ def measure_request(
         }
     except requests.RequestException as error:
         end = time.perf_counter()
+        # 出错时记录错误信息并继续执行，避免单个异常中断整轮实验。
         return {
             "status_code": "",
             "success": 0,
@@ -256,6 +265,7 @@ def run(args: argparse.Namespace) -> int:
         output_path = resolve_project_path(args.output)
         run_dir = output_path.parent
     else:
+        # 默认每轮实验都创建独立目录，避免多次运行互相覆盖结果。
         run_dir = resolve_project_path(args.result_dir) if args.result_dir else default_run_dir(
             result_root=result_root,
             args=args,
@@ -282,6 +292,7 @@ def run(args: argparse.Namespace) -> int:
                 for request_index, row in enumerate(sequence, start=1):
                     for endpoint_name in endpoint_order(args.endpoint, rng):
                         url = row["s3_url"] if endpoint_name == "s3" else row["cloudfront_url"]
+                        # 每条记录都保留完整实验上下文，便于后续按维度切片分析。
                         measurement = measure_request(
                             session=session,
                             url=url,
@@ -312,6 +323,7 @@ def run(args: argparse.Namespace) -> int:
     write_csv(output_path, BENCHMARK_FIELDS, records)
     if not args.output:
         metadata_path = run_dir / "metadata.json"
+        # 除原始 CSV 外，再单独保存一份元数据，方便结果目录脱离命令行单独查看。
         write_json(
             metadata_path,
             {

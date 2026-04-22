@@ -53,6 +53,7 @@ def choose_profiles(config: dict, requested_profiles: list[str] | None) -> list[
     if not requested_profiles:
         return all_profiles
 
+    # 允许只上传部分 profile，便于单独重跑某一组缓存策略。
     requested = set(requested_profiles)
     selected = [profile for profile in all_profiles if profile["name"] in requested]
     if len(selected) != len(requested):
@@ -73,6 +74,7 @@ def upload_local_file(
     key: str,
     cache_control: str,
 ) -> None:
+    # 上传时同时写入 Cache-Control，后续才能比较不同缓存策略的行为差异。
     extra_args = {
         "CacheControl": cache_control,
         "ContentType": content_type_for(local_path),
@@ -99,6 +101,7 @@ def run(args: argparse.Namespace) -> int:
             cache_control = profile["cache_control"]
             for row in local_rows:
                 local_path = resolve_project_path(row["local_path"])
+                # 用 profile 前缀区分不同缓存策略下上传的同一批对象。
                 key = f"{prefix}/{row['size_label']}/{row['file_name']}"
                 upload_local_file(
                     s3_client=s3_client,
@@ -148,6 +151,7 @@ def run(args: argparse.Namespace) -> int:
 
     existing_rows = []
     if uploaded_manifest_path.exists():
+        # 只替换本次上传 profile 对应的记录，保留其他 profile 的 manifest 条目。
         existing_rows = [
             row for row in read_csv(uploaded_manifest_path)
             if row["cache_profile"] not in selected_names

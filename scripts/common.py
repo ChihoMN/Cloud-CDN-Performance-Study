@@ -14,6 +14,7 @@ DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config.json"
 
 
 def load_config(config_path: str | Path | None = None) -> dict:
+    # 所有脚本都共享同一份配置，避免实验参数散落在多个文件里。
     path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
     if not path.is_absolute():
         path = PROJECT_ROOT / path
@@ -45,6 +46,7 @@ def timestamp_slug() -> str:
 
 
 def slugify(value: str, max_length: int = 48) -> str:
+    # 结果目录名会带实验参数，需要先转成稳定且安全的文件名片段。
     normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip())
     normalized = re.sub(r"-{2,}", "-", normalized).strip("-._")
     if not normalized:
