@@ -1,0 +1,14 @@
+{
+  "created_at_utc": "2026-04-22T10:19:06Z",
+  "run_id": "baseline_single-hot_both",
+  "profile": "baseline",
+  "mode": "single-hot",
+  "endpoint": "both",
+  "size_labels": "all",
+  "requests_per_size": 30,
+  "rounds": 1,
+  "seed": 5296,
+  "sleep_seconds": 0.0,
+  "manifest_path": "/Users/cza/Documents/CS5296_CC/project/CS5296_Project/data/processed/uploaded_objects.csv",
+  "benchmark_csv": "/Users/cza/Documents/CS5296_CC/project/CS5296_Project/result/20260422T101533Z__full-project-run/baseline_single-hot_both/benchmark.csv"
+}

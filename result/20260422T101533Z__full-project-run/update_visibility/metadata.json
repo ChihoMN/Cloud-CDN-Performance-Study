@@ -1,0 +1,14 @@
+{
+  "created_at_utc": "2026-04-22T10:31:39Z",
+  "experiment": "update_visibility",
+  "bucket_name": "cs5296-cdn-ziang-personal-20260422",
+  "s3_url": "https://cs5296-cdn-ziang-personal-20260422.s3.us-east-1.amazonaws.com/mutable/update_test.txt",
+  "cloudfront_url": "https://d1kkjdyyhst5i6.cloudfront.net/mutable/update_test.txt",
+  "mutable_key": "mutable/update_test.txt",
+  "cache_control": "public, max-age=60",
+  "poll_interval_seconds": 10.0,
+  "poll_count": 12,
+  "old_version": "old-20260422T102930Z",
+  "new_version": "new-20260422T102930Z",
+  "output_csv": "/Users/cza/Documents/CS5296_CC/project/CS5296_Project/result/20260422T101533Z__full-project-run/update_visibility/update_visibility.csv"
+}

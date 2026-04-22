@@ -1,0 +1,9 @@
+mode,cache_profile,endpoint,size_label,size_bytes,sample_count,success_rate,cache_hit_rate,mean_ttfb_ms,median_ttfb_ms,p95_ttfb_ms,mean_total_time_ms,median_total_time_ms,p95_total_time_ms,mean_throughput_mib_s
+single-hot,baseline,cloudfront,100kb,102400,30,1.0,0.9667,140.37,112.306,172.425,196.07,159.159,241.886,0.604
+single-hot,baseline,cloudfront,10kb,10240,30,1.0,0.9667,157.798,117.904,204.437,157.851,117.954,204.499,0.079
+single-hot,baseline,cloudfront,1mb,1048576,30,1.0,0.9667,136.612,105.332,253.302,243.369,181.373,317.782,5.224
+single-hot,baseline,cloudfront,5mb,5242880,30,1.0,0.9667,136.592,101.733,400.649,752.882,587.036,1939.783,9.061
+single-hot,baseline,s3,100kb,102400,30,1.0,0.0,344.801,329.814,400.907,365.903,342.61,476.408,0.273
+single-hot,baseline,s3,10kb,10240,30,1.0,0.0,410.121,401.305,433.666,410.186,401.368,433.697,0.025
+single-hot,baseline,s3,1mb,1048576,30,1.0,0.0,333.817,318.003,416.732,2346.601,1277.682,2416.591,0.729
+single-hot,baseline,s3,5mb,5242880,30,1.0,0.0,366.752,326.258,579.464,2648.218,1806.426,7582.776,2.814

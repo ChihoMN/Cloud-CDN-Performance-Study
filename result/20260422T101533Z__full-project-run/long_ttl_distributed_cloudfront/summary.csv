@@ -1,0 +1,5 @@
+mode,cache_profile,endpoint,size_label,size_bytes,sample_count,success_rate,cache_hit_rate,mean_ttfb_ms,median_ttfb_ms,p95_ttfb_ms,mean_total_time_ms,median_total_time_ms,p95_total_time_ms,mean_throughput_mib_s
+distributed,long_ttl,cloudfront,100kb,102400,30,1.0,0.8333,227.942,110.186,806.126,341.028,173.672,1183.6,0.491
+distributed,long_ttl,cloudfront,10kb,10240,30,1.0,0.8333,208.927,98.488,759.976,208.988,98.522,760.043,0.085
+distributed,long_ttl,cloudfront,1mb,1048576,30,1.0,0.8333,226.06,99.442,830.067,861.524,688.766,1972.97,1.566
+distributed,long_ttl,cloudfront,5mb,5242880,30,1.0,0.8333,228.82,103.315,886.369,869.68,497.823,2417.501,8.535
