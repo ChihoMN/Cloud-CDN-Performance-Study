@@ -9,6 +9,7 @@ COMMAND_MODULES = {
     "upload-files": "scripts.upload_files",
     "benchmark": "scripts.benchmark",
     "analyze": "scripts.analyze",
+    "update-visibility": "scripts.update_visibility",
 }
 
 
